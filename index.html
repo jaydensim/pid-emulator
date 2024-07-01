@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PID Emulators</title>
+  </head>
+  <body>
+    <div id="app">
+      <main class="main-upper">
+        <figure id="pid:injection"></figure>
+      </main>
+
+      <div class="app-split"><hr /></div>
+
+      <main class="main-lower">
+        <section>
+          <fieldset>
+            <legend>Application</legend>
+            <progress id="app:progress" min="0" max="4"></progress>
+            <label for="app:progress" id="app:status">
+              ⭕ Application loading...
+            </label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Trainset Config</legend>
+
+            <div class="itable-row">
+              <label for="tsconfig:ts-selector">Set Type:</label>
+              <select id="tsconfig:ts-selector"></select>
+            </div>
+            <div class="itable-row">
+              <label for="tsconfig:pid-selector">PID Variant:</label>
+              <select id="tsconfig:pid-selector"></select>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Render Statistics</legend>
+            <div id="rstats:measurements"></div>
+          </fieldset>
+        </section>
+
+        <section>
+          <fieldset>
+            <legend>Stopping Pattern</legend>
+            <div class="itable-row">
+              <label for="stopping:pattern-selector">Pattern</label>
+              <select id="stopping:pattern-selector">
+                <optgroup label="Sydney">
+                  <option value="0">T1 North Shore</option>
+                </optgroup>
+              </select>
+            </div>
+            <hr />
+            <div class="itable-col">
+              <label for="stopping:pattern-list">Stopping Pattern:</label>
+              <ul id="stopping:pattern-list"></ul>
+          </fieldset>
+        </section>
+      </main>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
