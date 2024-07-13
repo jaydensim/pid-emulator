@@ -4,8 +4,10 @@ import { useVehicle } from './vehicle'
 
 const ActorDefault: string[] = [
   'actor:ctf:begin',
+  'vehicle:route:reset',
   'actor:ctf:setdelay:30000',
   'vehicle:vmov:moving',
+  'actor:ctf:setdelay:15000',
   'vehicle:vmov:arriving',
   'actor:ctf:setdelay:500',
   'vehicle:vmov:stopped',
@@ -22,9 +24,11 @@ const ActorDefault: string[] = [
   'vehicle:route:nextstop',
   'actor:ctf:setdelay:5000',
   'vehicle:vmov:departing',
-  'vehicle:vmov:moving',
-  'actor:ctf:setdelay:10000',
+  'actor:ctf:setdelay:0',
   'actor:ctf:repeatif:morestops:2',
+  'actor:ctf:setdelay:30000',
+  'vehicle:vmov:moving',
+  'actor:ctf:setdelay:15000',
   'vehicle:vmov:arriving',
   'actor:ctf:setdelay:500',
   'vehicle:vmov:stopped',
@@ -49,6 +53,8 @@ export const useActor = defineStore('Actor', () => {
 
   const moveNextNumber = ref<boolean>(false)
 
+  const isSkippingToNextStation = ref<boolean>(false)
+
   function setActorProgram(program: string[]) {
     actorProgram.value = program
   }
@@ -67,7 +73,11 @@ export const useActor = defineStore('Actor', () => {
 
   function runActorStep() {
     const currentPerfNow = performance.now()
-    if (currentDelay.value >= currentTimeBuildup.value) {
+    if (
+      currentDelay.value >= currentTimeBuildup.value &&
+      !actorProgram.value[currentStage.value].includes('actor:ctf:setdelay') &&
+      !isSkippingToNextStation.value
+    ) {
       currentTimeBuildup.value += currentPerfNow - lastRunTime.value
       lastRunTime.value = currentPerfNow
     } else {
@@ -81,9 +91,6 @@ export const useActor = defineStore('Actor', () => {
 
       const currentInstruction = actorProgram.value[currentStage.value]
       const [driver, scope, instruction, ...args] = currentInstruction.split(':')
-
-      console.log(`From driver ${driver}, scope ${scope}, instruction ${instruction}, args ${args}`)
-
       let outcome = false
       if (driver == 'actor') {
         outcome = actorControlActorDriver(scope, instruction, args)
@@ -96,7 +103,6 @@ export const useActor = defineStore('Actor', () => {
   }
 
   function actorControlActorDriver(scope: string, instruction: string, args: string[]) {
-    console.log('Driver ActorControl:', scope, instruction, args)
     if (instruction == 'begin') {
       actorState.value = 'running'
       vehicleStore.setVehicleDoorState('closed')
@@ -116,7 +122,8 @@ export const useActor = defineStore('Actor', () => {
       } else return true
     } else if (instruction == 'setdelay') {
       currentDelay.value = parseInt(args[0])
-      currentTimeBuildup.value = currentDelay.value
+      currentTimeBuildup.value = currentDelay.value * 2
+      return true
     }
     return true
   }
@@ -133,6 +140,9 @@ export const useActor = defineStore('Actor', () => {
     } else if (scope == 'route') {
       if (instruction == 'nextstop') {
         vehicleStore.progressVehicleStop()
+        isSkippingToNextStation.value = false
+      } else if (instruction == 'reset') {
+        vehicleStore.resetRoute()
       }
     }
     return true
@@ -147,14 +157,10 @@ export const useActor = defineStore('Actor', () => {
     actorState.value = state
     const currentPerfNow = performance.now()
     if (state == 'running') {
-      currentTimeBuildup.value += currentPerfNow - lastRunTime.value
       lastRunTime.value = currentPerfNow
       window.requestAnimationFrame(callbackAnimation)
     } else if (state == 'stopped') {
-      currentStage.value = 0
-      currentTimeBuildup.value = 0
-      lastRunTime.value = currentPerfNow
-      currentDelay.value = 0
+      reset()
     } else if (state == 'paused') {
       currentTimeBuildup.value += currentPerfNow - lastRunTime.value
       lastRunTime.value = currentPerfNow
@@ -162,7 +168,18 @@ export const useActor = defineStore('Actor', () => {
   }
 
   function skipDelay() {
-      currentTimeBuildup.value = currentDelay.value
+    currentTimeBuildup.value = currentDelay.value
+  }
+
+  function skipToNextStation() {
+    isSkippingToNextStation.value = true
+  }
+
+  function reset() {
+    currentStage.value = 0
+    currentTimeBuildup.value = 0
+    lastRunTime.value = 0
+    currentDelay.value = 0
   }
 
   return {
@@ -170,10 +187,12 @@ export const useActor = defineStore('Actor', () => {
     actorState,
     currentStage,
     currentActorInstruction,
+    isSkippingToNextStation,
     actorProgramProgress,
     actorWaitStateProgress,
     setActorState,
     setActorProgram,
-    skipDelay
+    skipDelay,
+    skipToNextStation
   }
 })

@@ -1,7 +1,6 @@
 <script setup lang="ts">
-
 import PanelModule from '../../components/PanelModule.vue';
-
+import LoaderSymbol from '@/components/LoaderSymbol.vue';
 import { useApplication } from '../../stores/application';
 const application = useApplication();
 
@@ -21,15 +20,24 @@ const mappings = {
 
     <section class="status">
       <div>
-        <h3>{{ mappings[application.isAppFullyLoaded ? "ready" : "loading"] }}</h3>
+        <h3>
+          <LoaderSymbol v-if="!application.isAppFullyLoaded" />
+          <span v-else>{{ mappings["ready"] }}</span>
+        </h3>
         <p>Application</p>
       </div>
       <div>
-        <h3>{{ mappings[application.loadState.emulators] }}</h3>
+        <h3>
+          <LoaderSymbol v-if="application.loadState.emulators == 'loading'" />
+          <span v-else>{{ mappings[application.loadState.emulators] }}</span>
+        </h3>
         <p>Emulators</p>
       </div>
       <div>
-        <h3>{{ mappings[application.loadState.railroutes] }}</h3>
+        <h3>
+          <LoaderSymbol v-if="application.loadState.railroutes == 'loading'" />
+          <span v-else>{{ mappings[application.loadState.railroutes] }}</span>
+        </h3>
         <p>Rail routes</p>
       </div>
     </section>

@@ -5,6 +5,7 @@ import ActorStatus from '../panels/ActorStatus.vue';
 import VehicleStatus from '../panels/VehicleStatus.vue';
 import SelectEmulator from '../panels/SelectEmulator.vue';
 import SelectRoute from '../panels/SelectRoute.vue';
+import EmulatorConfig from '../panels/EmulatorConfig.vue';
 
 </script>
 
@@ -13,13 +14,14 @@ import SelectRoute from '../panels/SelectRoute.vue';
   <section>
     <ApplicationStatus />
     <SelectEmulator />
-  </section>
-  <section>
     <SelectRoute />
   </section>
   <section>
     <VehicleStatus />
     <ActorStatus />
+  </section>
+  <section>
+    <EmulatorConfig />
   </section>
 </template>
 

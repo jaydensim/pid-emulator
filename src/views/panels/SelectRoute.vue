@@ -1,24 +1,41 @@
 <script setup lang="ts">
 import { useVehicle } from '@/stores/vehicle';
 import PanelModule from '../../components/PanelModule.vue';
+import LoaderSymbol from '@/components/LoaderSymbol.vue';
 
 import { useLoaders } from '@/stores/loaders';
 import type { Railroute } from '@/types/Railroute';
+import { nextTick, ref, watch } from 'vue';
 const loaders = useLoaders();
 const vehicle = useVehicle()
 
-function setRoute(routeId: string) {
+const selectedVehicleRefs = ref([]);
+
+function setRoute(routeId: string, event: MouseEvent) {
   const newRoute = loaders.railroutes.get(routeId) as unknown as Railroute;
-  vehicle.setVehicleRoute(newRoute);
+  vehicle.setVehicleRoute(JSON.parse(JSON.stringify(newRoute)));
+  (event.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
+
+watch([() => vehicle.vehicleRoute?.id, () => loaders.railroutes], () => {
+  nextTick(() => {
+    selectedVehicleRefs.value.forEach((el: HTMLElement) => {
+      if (el.getAttribute("data-selected") == "true") {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    })
+  });
+});
 </script>
 
 
 <template>
-  <PanelModule title="Select Route" height="300">
+  <PanelModule
+    :title="loaders.railroutes.size == 0 ? `Select Route` : `Select Route - ${loaders.railroutes.size} loaded`"
+    height="200">
     <ul v-if="loaders.railroutes.size !== 0">
       <li v-for="route of loaders.railroutes" :key="route[0]" :data-selected="route[0] == vehicle.vehicleRoute?.id"
-        @click="setRoute(route[0])">
+        ref="selectedVehicleRefs" @click="setRoute(route[0], $event)">
         <div class="row">
           <p class="icon" :style="{ backgroundColor: route[1].line.colour, color: route[1].line.textcolour }">
             <span>{{ route[1].line.short }}</span>
@@ -34,7 +51,7 @@ function setRoute(routeId: string) {
       </li>
     </ul>
     <div class="empty" v-else>
-      Waiting for routes to load...
+      <LoaderSymbol /> Loading routes...
     </div>
   </PanelModule>
 </template>
@@ -62,18 +79,19 @@ li {
 li:before {
   content: "";
   background-color: #ffffff;
-  width: calc(100% + 4px);
-  height: calc(100% + 4px);
+  width: 100%;
+  height: 100%;
   display: block;
   position: absolute;
-  left: -2px;
-  top: -2px;
+  left: 0px;
+  top: 0px;
   z-index: 0;
-  border-radius: 6px;
+  border-radius: 4px;
 }
 
 li:hover {
   opacity: 0.75;
+  border: 2px dotted var(--app-accent);
 }
 
 li[data-selected="true"] {

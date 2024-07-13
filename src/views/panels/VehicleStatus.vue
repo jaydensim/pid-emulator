@@ -57,8 +57,8 @@ const safetyCircuitMapping = {
           {{ vehicle.vehicleNextStops.length == 3 ? "stop" : "stops" }} before {{
             vehicle.vehicleNextStops[vehicle.vehicleNextStops.length - 1] }}.
           </span>
-          <span v-else-if="vehicle.vehicleNextStops.length == 2">, followed by {{
-            vehicle.vehicleNextStops[vehicle.vehicleNextStops.length - 1] }}.
+          <span v-else-if="vehicle.vehicleNextStops.length == 2">followed by <b>{{
+            vehicle.vehicleNextStops[vehicle.vehicleNextStops.length - 1] }}</b>.
           </span>
       </p>
     </section>

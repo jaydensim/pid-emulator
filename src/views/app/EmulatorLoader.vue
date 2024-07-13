@@ -2,6 +2,8 @@
 import { useLoaders } from '@/stores/loaders';
 import { computed, type Component } from 'vue';
 import { useRoute } from 'vue-router';
+import LoaderSymbol from '@/components/LoaderSymbol.vue';
+
 const loaders = useLoaders();
 
 const route = useRoute();
@@ -10,7 +12,8 @@ const requestedId = computed(() => route.params.id as string);
 
 const emulatorState = computed(() => {
   const emulator = loaders.emulators.get(requestedId.value);
-  if (!emulator) return "not-found";
+  if (!emulator && loaders.emulators.size > 0) return "not-found";
+  if (!emulator) return "awaiting-load";
   if (emulator.disabled) return "disabled";
   else return "enabled";
 });
@@ -26,7 +29,9 @@ const emulator = computed(() => {
   <Suspense :key="requestedId" v-if="emulatorState == 'enabled'">
     <template #fallback>
       <div class="overlay">
-        <span class="emoji">🕑</span>
+        <span class="emoji">
+          <LoaderSymbol />
+        </span>
         <span>Loading {{ route.params.id }}</span>
       </div>
     </template>
@@ -36,6 +41,13 @@ const emulator = computed(() => {
   <div class="overlay" v-else-if="emulatorState == 'not-found'">
     <span class="emoji">🚫</span>
     <span>The emulator {{ route.params.id }} could not be found.</span>
+  </div>
+
+  <div class="overlay" v-else-if="emulatorState == 'awaiting-load'">
+    <span class="emoji">
+      <LoaderSymbol />
+    </span>
+    <span>Loading emulators...</span>
   </div>
 
   <div class="overlay" v-else-if="emulatorState == 'disabled'">

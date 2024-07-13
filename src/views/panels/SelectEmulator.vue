@@ -1,25 +1,41 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 import PanelModule from '../../components/PanelModule.vue';
+import LoaderSymbol from '@/components/LoaderSymbol.vue';
 
 import { useLoaders } from '@/stores/loaders';
+import { ref, nextTick, watch } from 'vue';
 const loaders = useLoaders();
-
+const route = useRoute();
 const emuTypeMapping = {
   led: '💡',
   display: "🖥️",
   "other": '🚦'
 }
 
+const selectedEmulatorsRefs = ref([]);
 
+
+watch([() => route.params.id, () => loaders.emulators.size], () => {
+  nextTick(() => {
+    selectedEmulatorsRefs.value.forEach((el: { $el: HTMLElement }) => {
+      if (el.$el.getAttribute("data-selected") == "true") {
+        el.$el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    })
+  });
+});
 </script>
 
 
 <template>
-  <PanelModule title="Select Emulator" height="300">
+  <PanelModule
+    :title="loaders.emulators.size == 0 ? `Select Emulator` : `Select Emulator - ${loaders.emulators.size} loaded`"
+    height="150">
     <ul v-if="loaders.emulators.size !== 0">
       <RouterLink :to="`/${emulator[0]}`" v-for="emulator of loaders.emulators" :key="emulator[0]" activeClass="active"
-        :data-disabled="emulator[1].disabled">
+        :data-disabled="emulator[1].disabled" :data-selected="route.params.id == emulator[0]"
+        ref="selectedEmulatorsRefs">
         <li>
           <div class="row">
             <p class="icon">{{ emuTypeMapping[emulator[1].type] }}</p>
@@ -32,7 +48,7 @@ const emuTypeMapping = {
       </RouterLink>
     </ul>
     <div class="empty" v-else>
-      Waiting for emulators to load...
+      <LoaderSymbol /> Loading emulators...
     </div>
   </PanelModule>
 </template>
@@ -60,14 +76,19 @@ li {
 li:before {
   content: "";
   background-color: #ffffff;
-  width: calc(100% + 4px);
-  height: calc(100% + 4px);
+  width: 100%;
+  height: 100%;
   display: block;
   position: absolute;
-  left: -2px;
-  top: -2px;
+  left: 0px;
+  top: 0px;
   z-index: 0;
-  border-radius: 6px;
+  border-radius: 4px;
+}
+
+li:hover {
+  opacity: 0.75;
+  border: 2px dotted var(--app-accent);
 }
 
 .active li {
@@ -117,4 +138,4 @@ div.empty {
   height: 100%;
   color: #8C8C8C;
 }
-</style>
+</style>nextTick, , watch

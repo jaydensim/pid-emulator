@@ -40,9 +40,16 @@ export const useVehicle = defineStore('Vehicle', () => {
   }
 
   function setVehicleRoute(route: Railroute) {
-    vehicleRoute.value = route
-    vehicleFullStoppingPattern.value = route.stations
-    vehicleNextStops.value = route.stations
+    vehicleRoute.value = JSON.parse(JSON.stringify(route))
+    resetRoute()
+  }
+
+  function resetRoute() {
+    if (!vehicleRoute.value) return
+    vehicleFullStoppingPattern.value = []
+    vehicleNextStops.value = []
+    vehicleFullStoppingPattern.value = JSON.parse(JSON.stringify(vehicleRoute.value.stations))
+    vehicleNextStops.value = JSON.parse(JSON.stringify(vehicleRoute.value.stations))
   }
 
   function progressVehicleStop() {
@@ -63,6 +70,7 @@ export const useVehicle = defineStore('Vehicle', () => {
     setVehicleMotionState,
     setVehicleDoorState,
     setVehicleRoute,
+    resetRoute,
     progressVehicleStop
   }
 })

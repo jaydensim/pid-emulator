@@ -8,4 +8,5 @@ export interface Emulator {
   disabled?: boolean
   colour: string
   component: Component
+  configcomponent?: Component
 }

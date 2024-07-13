@@ -1,4 +1,5 @@
 import WaratahEmulator from './WaratahEmulator.vue'
+import WaratahEmulatorConfig from './WaratahEmulatorConfig.vue'
 
 const emulator = {
   id: 'sydneytrains:waratah1',
@@ -7,6 +8,7 @@ const emulator = {
   type: 'led',
   colour: 'FF7A00',
   component: WaratahEmulator
+  //configcomponent: WaratahEmulatorConfig
 }
 
 export default emulator

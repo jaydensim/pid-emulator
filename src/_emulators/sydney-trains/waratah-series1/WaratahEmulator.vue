@@ -2,6 +2,7 @@
 import { computed, ref, stop, watch } from 'vue';
 import WaratahScreen from './WaratahScreen.vue'
 import { useVehicle } from '@/stores/vehicle';
+import { useActor } from '@/stores/actor';
 
 const screenWidth = 94;
 const screenHeight = 17;
@@ -15,6 +16,7 @@ const fontLibrary = await import('./WaratahFont') as any;
 const iconLibrary = await import('./WaratahIcons') as any;
 
 const vehicle = useVehicle();
+const actor = useActor();
 
 
 
@@ -30,11 +32,14 @@ let doWipeDownAnimation = -1;
 
 interface RenderElement {
   type: "text" | "icon";
-  flags: { line: number; align: "center" | "left" | "right" | "scroll" };
+  flags?: { line: number; align: "center" | "left" | "right" | "scroll" };
   content: any;
 }
 
 const stage = ref<"moving" | "arriving" | "stopped">("stopped");
+
+const dvaAnnouncement = ref("");
+const dvaAnnouncementDelayed = ref("")
 
 const nextStopsDelayed = ref(vehicle.vehicleNextStops);
 
@@ -49,17 +54,14 @@ watch([
     stage.value = "arriving";
   } else if (vehicle.vehicleMotionState === "stopped" && vehicle.vehicleDoorState == 'opening') {
     stage.value = "stopped";
+  } else if (vehicle.vehicleMotionState === "stopped" && vehicle.vehicleDoorState == 'closing') {
+    SetDVA("Doors closing. Please stand clear.")
   }
 });
 
 
 watch(
-  () => stage.value, () => {
-    doWipeDownAnimation = -1;
-    nextStopsDelayed.value = JSON.parse(JSON.stringify(vehicle.vehicleNextStops));
-  });
-watch(
-  () => vehicle.vehicleRoute, () => {
+  [() => vehicle.vehicleRoute, () => vehicle.vehicleFullStoppingPattern, () => actor.isSkippingToNextStation, () => stage.value], () => {
     doWipeDownAnimation = -1;
     nextStopsDelayed.value = JSON.parse(JSON.stringify(vehicle.vehicleNextStops));
   });
@@ -80,13 +82,18 @@ const renderElements = computed<RenderElement[]>(() => {
     } as RenderElement,
   }
 
-  console.log(components)
 
   if (stage.value === "moving") {
+    SetDVA(`Next stop, ${nextStopsDelayed.value[0]}.`);
     return [
       components.topStationDisplay, components.stoppingPattern
     ];
   } else if (stage.value === "arriving") {
+    if (nextStopsDelayed.value.length == 1) {
+      SetDVA(`This train will stop at ${nextStopsDelayed.value[0]}. This is the last stop. Please get off here.`);
+    } else {
+      SetDVA(`This train will stop at ${nextStopsDelayed.value[0]}.`);
+    }
     return [
       components.topStationDisplay,
       {
@@ -96,14 +103,20 @@ const renderElements = computed<RenderElement[]>(() => {
       },
     ];
   } else if (stage.value === "stopped") {
-    return Math.random() > 0.8 ? [
-      components.topStationDisplay,
-      {
-        type: "text",
-        flags: { line: 1, align: "scroll" },
-        content: ["Please mind the gap between the train and the platform.", ""],
-      }
-    ] : [components.topStationDisplay];
+    if (Math.random() > 0.5) {
+      SetDVA(`This station is ${nextStopsDelayed.value[0]}. Please mind the gap between the train and the platform.`);
+      return [
+        components.topStationDisplay,
+        {
+          type: "text",
+          flags: { line: 1, align: "scroll" },
+          content: ["Please mind the gap between the train and the platform."],
+        }
+      ];
+    } else {
+      SetDVA(`This station is ${nextStopsDelayed.value[0]}.`);
+      return [components.topStationDisplay];
+    }
   } else return [];
 });
 
@@ -125,6 +138,10 @@ function UpdateScreen() {
 }
 
 
+function SetDVA(text: string) {
+  dvaAnnouncement.value = text;
+}
+
 function FlushScreen() {
   if (doWipeDownAnimation == -2) {
     buffer.value = activePaint;
@@ -138,8 +155,6 @@ function FlushScreen() {
     });
   }
 }
-
-
 
 function runScrollUpdate() {
   if (doWipeDownAnimation == -2) {
@@ -160,6 +175,20 @@ function runScrollUpdate() {
     doWipeDownAnimation += 0.1;
     scrollPos = linePos.map(() => screenWidth);
   }
+
+  if (dvaAnnouncement.value == '' || !dvaAnnouncement.value.includes(dvaAnnouncementDelayed.value)) {
+    dvaAnnouncementDelayed.value = '';
+  } else if (dvaAnnouncementDelayed.value !== dvaAnnouncement.value) {
+    const alreadySaid = dvaAnnouncementDelayed.value.length;
+    const nextWord = dvaAnnouncement.value.split("")[alreadySaid];
+    if (nextWord === undefined) {
+      dvaAnnouncementDelayed.value = dvaAnnouncement.value;
+      return;
+    } else {
+      dvaAnnouncementDelayed.value += "" + nextWord;
+    }
+  }
+
 }
 
 
@@ -192,7 +221,7 @@ function getCharacterSize(char: string) {
 }
 
 function renderElementTextualContent(el: RenderElement) {
-  const { line, align } = el.flags;
+  const { line, align } = el.flags as { line: number; align: string }
   const content = (el.content as string[])
     .map((s) => s.split("").join("|"))
     .join("".padEnd(screenWidth / 2 + 5, " "))
@@ -280,4 +309,68 @@ setInterval(() => {
 
 <template>
   <WaratahScreen :imageData="buffer" />
+  <section class="dva-announcement" :key="dvaAnnouncement" :data-anim-end="dvaAnnouncementDelayed == dvaAnnouncement"
+    v-if="dvaAnnouncement !== ''">
+    <h3>🗣️ DVA Announcement:</h3>
+    <p>
+      <span class="hidden">{{ dvaAnnouncement }}</span>
+      <span class="actual">{{ dvaAnnouncementDelayed }}</span>
+    </p>
+  </section>
 </template>
+
+
+<style scoped>
+section.dva-announcement {
+  padding: 8px;
+  background-color: #f6f6f7;
+  border-radius: 8px;
+  margin-top: 20px;
+  width: max-content;
+  display: flex;
+  flex-flow: row;
+  align-items: center;
+  gap: 8px;
+  transform-origin: left center;
+  animation: DVA 10s ease;
+}
+
+section.dva-announcement h3 {
+  font-weight: 700;
+  font-size: small;
+  text-transform: uppercase;
+}
+
+section.dva-announcement p {
+  margin-bottom: 2px;
+  position: relative;
+}
+
+section.dva-announcement[data-anim-end="false"] p {
+  opacity: 0.25;
+}
+
+span.hidden {
+  opacity: 0;
+  user-select: none;
+  pointer-events: none;
+}
+
+span.actual {
+  position: absolute;
+  left: 0px;
+}
+
+@keyframes DVA {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  2.5%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+</style>
